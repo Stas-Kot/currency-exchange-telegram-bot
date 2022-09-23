@@ -46,6 +46,7 @@ public class CurrencyTelegramBot extends TelegramLongPollingCommandBot {
             }
 
 
+            assert currencyRate != null;
             String prettyText = prettyPrintCurrencyService.convert(currencyRate, currency);
 
             SendMessage responseMessage = new SendMessage();
@@ -63,11 +64,11 @@ public class CurrencyTelegramBot extends TelegramLongPollingCommandBot {
 
     @Override
     public String getBotUsername() {
-        return BotConstants.BOT_NAME;
+        return new BotConstants().propertiesReader("bot.name");
     }
 
     @Override
     public String getBotToken() {
-        return BotConstants.BOT_TOKEN;
+        return new BotConstants().propertiesReader("bot.token");
     }
 }
