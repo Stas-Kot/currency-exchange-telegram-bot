@@ -22,13 +22,12 @@ public class CurrencyTelegramBot extends TelegramLongPollingCommandBot {
         prettyPrintCurrencyService = new PrettyPrintCurrencyService();
 
         register(new StartCommand());
-        register(new CurrencyCommand());
-        register(new CurrentCommand());
-        register(new DayRateCommand());
-        register(new CalculatorCommand());
-        register(new BankCommand());
-        register(new GraphicsCommand());
+        register(new GetInfoCommand());
         register(new SettingsCommand());
+        register(new BankCommand());
+        register(new CurrencyCommand());
+        register(new NotificationTimeCommand());
+        register(new DecimalPlacesCommand());
     }
 
     @Override

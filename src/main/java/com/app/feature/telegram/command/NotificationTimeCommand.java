@@ -7,15 +7,15 @@ import org.telegram.telegrambots.meta.api.objects.User;
 import org.telegram.telegrambots.meta.bots.AbsSender;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
-public class DayRateCommand extends BotCommand {
-    public DayRateCommand() {
-        super("day_rate", "With this command you can choose specific date");
+public class NotificationTimeCommand extends BotCommand {
+    public NotificationTimeCommand() {
+        super("notification_time", "With this command you can choose your notification time");
     }
 
     @Override
     public void execute(AbsSender absSender, User user, Chat chat, String[] arguments) {
-        System.out.println("Day_rate pressed!");
-        String text = "Обрати дату";
+        System.out.println("Notification_time pressed!");
+        String text = "Час сповіщень";
         SendMessage message = new SendMessage();
         message.setText(text);
         message.setChatId(chat.getId().toString());

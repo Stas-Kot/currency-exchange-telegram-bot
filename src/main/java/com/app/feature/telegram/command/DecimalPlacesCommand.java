@@ -7,15 +7,15 @@ import org.telegram.telegrambots.meta.api.objects.User;
 import org.telegram.telegrambots.meta.bots.AbsSender;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
-public class CalculatorCommand extends BotCommand {
-    public CalculatorCommand() {
-        super("calculator", "With this command you can use calculator");
+public class DecimalPlacesCommand extends BotCommand {
+    public DecimalPlacesCommand() {
+        super("decimal_places", "With this command you can choose number of decimal places ");
     }
 
     @Override
     public void execute(AbsSender absSender, User user, Chat chat, String[] arguments) {
-        System.out.println("Calculator pressed!");
-        String text = "Калькулятор";
+        System.out.println("Decimal_places pressed!");
+        String text = "Кілкість знаків після коми";
         SendMessage message = new SendMessage();
         message.setText(text);
         message.setChatId(chat.getId().toString());

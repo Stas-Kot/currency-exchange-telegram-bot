@@ -23,22 +23,22 @@ public class CurrencyCommand extends BotCommand {
     @Override
     public void execute(AbsSender absSender, User user, Chat chat, String[] arguments) {
         System.out.println("Currency pressed!");
-        String text = "What currency rate do you want to know:";
+        String text = "Вибір валюти";
         SendMessage message = new SendMessage();
         message.setText(text);
         message.setChatId(chat.getId().toString());
 
-        List<InlineKeyboardButton> buttons = Stream.of(Currency.BTC, Currency.EUR, Currency.USD, Currency.RUR)
-                .map(Enum::name)
-                .map(it -> InlineKeyboardButton.builder().text(it).callbackData(it).build())
-                .collect(Collectors.toList());
-
-        InlineKeyboardMarkup keyboard = InlineKeyboardMarkup
-                .builder()
-                .keyboard(Collections.singleton(buttons))
-                .build();
-
-        message.setReplyMarkup(keyboard);
+//        List<InlineKeyboardButton> buttons = Stream.of(Currency.BTC, Currency.EUR, Currency.USD, Currency.RUR)
+//                .map(Enum::name)
+//                .map(it -> InlineKeyboardButton.builder().text(it).callbackData(it).build())
+//                .collect(Collectors.toList());
+//
+//        InlineKeyboardMarkup keyboard = InlineKeyboardMarkup
+//                .builder()
+//                .keyboard(Collections.singleton(buttons))
+//                .build();
+//
+//        message.setReplyMarkup(keyboard);
 
         try {
             absSender.execute(message);
