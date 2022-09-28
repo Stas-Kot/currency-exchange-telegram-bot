@@ -1,19 +1,18 @@
 package com.app.feature.currency;
 
 import com.app.feature.currency.dto.Currency;
-import com.app.feature.currency.dto.CurrencyItem;
+import com.app.feature.currency.dto.CurrencyItemPrivat;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
-import com.vdurmont.emoji.EmojiParser;
 import org.jsoup.Jsoup;
 
 import java.io.IOException;
 import java.lang.reflect.Type;
+import java.util.ArrayList;
 import java.util.List;
 
-public class PrivatBankCurrencyService implements CurrencyService {
-    @Override
-    public CurrencyItem getRate(Currency currency) {
+public class PrivatBankCurrencyService{
+    public List<CurrencyItemPrivat> getRate(List<Currency> currencyList) {
         String url = "https://api.privatbank.ua/p24api/pubinfo?json&exchange&coursid=11";
 
         String json;
@@ -29,13 +28,17 @@ public class PrivatBankCurrencyService implements CurrencyService {
             throw new IllegalStateException("Can't connect to Privat API");
         }
         Type typeToken = TypeToken
-                .getParameterized(List.class, CurrencyItem.class)
+                .getParameterized(List.class, CurrencyItemPrivat.class)
                 .getType();
-        List<CurrencyItem> currencyItems = new Gson().fromJson(json, typeToken);
-
-        return currencyItems.stream()
-                .filter(it -> it.getCcy() == currency)
+        List<CurrencyItemPrivat> currencyItemPrivats = new Gson().fromJson(json, typeToken);
+        List<CurrencyItemPrivat> currencyItemPrivatList = new ArrayList<>();
+        for(Currency currency: currencyList) {
+            String currencyName = currency.name().equals("RUB") ? "RUR" : currency.name();
+            currencyItemPrivatList.add(currencyItemPrivats.stream()
+                .filter(it -> it.getCcy().name().equals(currencyName))
                 .findFirst()
-                .orElseThrow();
+                .orElseThrow());
+        }
+        return currencyItemPrivatList;
     }
 }

@@ -1,10 +1,10 @@
 package com.app.feature.currency;
 
 import com.app.feature.currency.dto.Currency;
-import com.app.feature.currency.dto.CurrencyItem;
+import com.app.feature.currency.dto.CurrencyItemPrivat;
 
-import java.io.IOException;
+import java.util.List;
 
-public interface CurrencyService {
-    CurrencyItem getRate(Currency currency) throws IOException;
-}
+//public interface CurrencyService<T> {
+//    List<T> getRate(List<Currency> currency);
+//}

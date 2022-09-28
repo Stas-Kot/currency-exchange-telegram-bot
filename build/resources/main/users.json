@@ -1,0 +1,17 @@
+[
+  {
+    "chatId": 743395488,
+    "firstName": "Stas",
+    "userName": "Kot_Stas",
+    "userCurrency": [
+      "USD",
+      "RUB",
+      "EUR"
+    ],
+    "userBank": [
+      "PrivatBank"
+    ],
+    "rounding": 3,
+    "alarmTime": "16"
+  }
+]
