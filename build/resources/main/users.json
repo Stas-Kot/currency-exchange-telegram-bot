@@ -5,13 +5,28 @@
     "userName": "Kot_Stas",
     "userCurrency": [
       "USD",
-      "RUB",
+      "GBP"
+    ],
+    "userBank": [
+      "PrivatBank",
+      "Monobank"
+    ],
+    "rounding": 2,
+    "alarmTime": "9"
+  },
+  {
+    "chatId": 360336633,
+    "firstName": "ÃÂ®ÃÂ»ÃÂÃÂ",
+    "userName": "Yuliia_Ki",
+    "userCurrency": [
+      "USD",
       "EUR"
     ],
     "userBank": [
-      "PrivatBank"
+      "PrivatBank",
+      "Monobank"
     ],
-    "rounding": 3,
-    "alarmTime": "16"
+    "rounding": 2,
+    "alarmTime": "9"
   }
 ]

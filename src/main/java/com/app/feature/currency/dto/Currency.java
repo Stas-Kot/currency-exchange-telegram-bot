@@ -5,5 +5,5 @@ public enum Currency {
     USD,
     RUB,
     UAH,
-    RUR
+    GBP
 }

@@ -1,29 +1,88 @@
 package com.app.feature.telegram.ui;
 
-import com.app.feature.currency.dto.CurrencyItemPrivat;
+import com.app.feature.currency.dto.Bank;
+import com.app.feature.currency.dto.Currency;
 import com.vdurmont.emoji.EmojiParser;
 
 import java.util.List;
+import java.util.Map;
 
 public class PrettyPrintCurrencyService {
     private final String euro_emoji = EmojiParser.parseToUnicode(":eu:");
     private final String dollar_emoji = EmojiParser.parseToUnicode(":us:");
     private final String bitcoin_emoji = EmojiParser.parseToUnicode(":moneybag:");
-    private final String rur_emoji = EmojiParser.parseToUnicode(":ru:");
+    private final String rub_emoji = EmojiParser.parseToUnicode(":ru:");
     private final String ua_emoji = EmojiParser.parseToUnicode(":ua:");
+    private final String gb_emoji = EmojiParser.parseToUnicode(":gb:");
 
-    public String convert(List<CurrencyItemPrivat> currencyItemPrivatList, int rounding) {
-        StringBuilder res = new StringBuilder("Exchange rate in PrivatBank:");
-        for(CurrencyItemPrivat currencyItemPrivat : currencyItemPrivatList) {
-            String currencyOneFlag = getCurrencyFlag(currencyItemPrivat.getCcy().name());
-            String currencyTwoFlag = getCurrencyFlag(currencyItemPrivat.getBase_ccy().name());
+    public String convert(Map<String, Double> currencyRates, List<Currency> currencies, int rounding, Bank bank) {
+        StringBuilder res = new StringBuilder();
+        for (Currency currency : currencies) {
+            String currencyFirstFlag = getCurrencyFlag(Currency.UAH.name());
+            String currencySecondFlag = getCurrencyFlag(currency.name());
 
-            float roundedBuyRate = Math.round(currencyItemPrivat.getBuy() * Math.pow(10, rounding))/(float)Math.pow(10, rounding);
-            float roundedSaleRate = Math.round(currencyItemPrivat.getSale() * Math.pow(10, rounding))/(float)Math.pow(10, rounding);
+            if (currencyRates.containsKey("rate" + currency)) {
+                float roundedRate = Math.round(currencyRates.get("rate" + currency) * Math.pow(10, rounding)) / (float) Math.pow(10, rounding);
+                res.append(System.lineSeparator())
+                        .append(" ".repeat(4))
+                        .append(Currency.UAH.name())
+                        .append("/")
+                        .append(currency.name())
+                        .append(" ".repeat(3))
+                        .append(currencyFirstFlag)
+                        .append("/")
+                        .append(currencySecondFlag)
+                        .append(System.lineSeparator())
+                        .append(" ".repeat(8))
+                        .append("Rate: ")
+                        .append(roundedRate);
+            } else if(currencyRates.containsKey("buy" + currency)  && currencyRates.get("buy" + currency) == -1) {
+                convertNotSupportedCurrency(bank.getFullName(), currency, res);
+            } else {
+                float roundedBuyRate = Math.round(currencyRates.get("buy" + currency) * Math.pow(10, rounding)) / (float) Math.pow(10, rounding);
+                float roundedSaleRate = Math.round(currencyRates.get("sell" + currency) * Math.pow(10, rounding)) / (float) Math.pow(10, rounding);
 
-            res.append(System.lineSeparator().repeat(2)).append(currencyItemPrivat.getBase_ccy()).append("/").append(currencyItemPrivat.getCcy().name()).append("   ").append(currencyTwoFlag).append("/").append(currencyOneFlag).append(System.lineSeparator()).append("Buying: ").append(roundedBuyRate).append(" / ").append("Selling: ").append(roundedSaleRate);
+                res.append(System.lineSeparator())
+                        .append(" ".repeat(4))
+                        .append(Currency.UAH.name())
+                        .append("/")
+                        .append(currency.name())
+                        .append(" ".repeat(3))
+                        .append(currencyFirstFlag)
+                        .append("/")
+                        .append(currencySecondFlag)
+                        .append(System.lineSeparator())
+                        .append(" ".repeat(8))
+                        .append("Buying: ")
+                        .append(roundedBuyRate)
+                        .append(" / ")
+                        .append("Selling: ")
+                        .append(roundedSaleRate);
+            }
         }
         return res.toString();
+    }
+
+    public void convertNotSupportedCurrency(String bank, Currency currency, StringBuilder text) {
+        String currencyFirstFlag = getCurrencyFlag(Currency.UAH.name());
+        String currencySecondFlag = getCurrencyFlag(currency.name());
+
+        text.append(System.lineSeparator())
+                .append(" ".repeat(4))
+                .append(Currency.UAH.name())
+                .append("/")
+                .append(currency.name())
+                .append(" ".repeat(3))
+                .append(currencyFirstFlag)
+                .append("/")
+                .append(currencySecondFlag)
+                .append(System.lineSeparator())
+                .append(" ".repeat(8))
+                .append("Sorry, ")
+                .append(bank)
+                .append(" doesn't support this specific currency - ")
+                .append(currency.name())
+                .append("!");
     }
 
     public String getCurrencyFlag(String currencyName) {
@@ -36,10 +95,12 @@ public class PrettyPrintCurrencyService {
                 return euro_emoji;
             case "USD":
                 return dollar_emoji;
-            case "RUR":
-                return rur_emoji;
+            case "RUB":
+                return rub_emoji;
+            case "GBP":
+                return gb_emoji;
+            default:
+                return null;
         }
-
-        return null;
     }
 }

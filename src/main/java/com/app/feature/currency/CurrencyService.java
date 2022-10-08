@@ -1,10 +1,10 @@
 package com.app.feature.currency;
 
 import com.app.feature.currency.dto.Currency;
-import com.app.feature.currency.dto.CurrencyItemPrivat;
 
 import java.util.List;
+import java.util.Map;
 
-//public interface CurrencyService<T> {
-//    List<T> getRate(List<Currency> currency);
-//}
+public interface CurrencyService {
+    Map<String, Double> getRate(List<Currency> currency);
+}

@@ -1,10 +1,7 @@
 package com.app.feature.telegram;
 
-import com.app.feature.currency.PrivatBankCurrencyService;
 import com.app.feature.currency.dto.Bank;
 import com.app.feature.currency.dto.Currency;
-import com.app.feature.currency.dto.CurrencyItemMono;
-import com.app.feature.currency.dto.CurrencyItemPrivat;
 import com.app.feature.telegram.command.*;
 import com.app.feature.telegram.ui.PrettyPrintCurrencyService;
 import com.app.feature.user.UserUtil;
@@ -17,25 +14,29 @@ import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMa
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardButton;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 import java.util.stream.Collectors;
 
 public class CurrencyTelegramBot extends TelegramLongPollingCommandBot {
-    private final PrivatBankCurrencyService currencyPrivatService;
-//    private final MonoBankCurrencyService currencyMonoService;
     private final PrettyPrintCurrencyService prettyPrintCurrencyService;
     private final UserUtil userUtil = new UserUtil();
     private Long chatId;
 
     public CurrencyTelegramBot() {
-        currencyPrivatService = new PrivatBankCurrencyService();
-//        currencyMonoService = new MonoBankCurrencyService();
         prettyPrintCurrencyService = new PrettyPrintCurrencyService();
 
         register(new StartCommand());
+        register(new GetInfoCommand());
+        register(new SettingsCommand());
+    }
+
+    public CurrencyTelegramBot(Long chatId) {
+        prettyPrintCurrencyService = new PrettyPrintCurrencyService();
+        this.chatId = chatId;
+
+        register(new StartCommand());
+        register(new GetInfoCommand());
+        register(new SettingsCommand());
     }
 
     private void sendMessageWithKeyboard(String text, String chatId, InlineKeyboardMarkup keyboard) {
@@ -67,7 +68,7 @@ public class CurrencyTelegramBot extends TelegramLongPollingCommandBot {
         }
     }
 
-    private InlineKeyboardMarkup makeKeyboard(List<List<InlineKeyboardButton>> rowList) {
+    private InlineKeyboardMarkup createKeyboard(List<List<InlineKeyboardButton>> rowList) {
         return InlineKeyboardMarkup
                 .builder()
                 .keyboard(rowList)
@@ -81,33 +82,39 @@ public class CurrencyTelegramBot extends TelegramLongPollingCommandBot {
                 .build();
     }
 
-    private void createBackToSettingsButton(List<List<InlineKeyboardButton>> rowList) {
-        rowList.add(List.of(
-                InlineKeyboardButton.builder()
-                        .text("Back to settings")
-                        .callbackData("back_to_settings")
-                        .build()));
+    private void createBackToMainMenuButton(List<List<InlineKeyboardButton>> rowList) {
+        rowList.add(List.of(createButton("Back to main menu", "main_menu")));
     }
 
-    private void onGetInfoPressed() {
+    private void createBackToSettingsButton(List<List<InlineKeyboardButton>> rowList) {
+        rowList.add(List.of(createButton("Back to settings", "back_to_settings")));
+    }
+
+    public void onGetInfoPressed() {
         System.out.println("Get_info pressed!");
+
         int rounding = userUtil.getRoundingByUserId(chatId);
         List<Currency> savedCurrency = userUtil.getCurrencyTypeByUserId(chatId);
-        List<CurrencyItemPrivat> currencyRateListPrivat = currencyPrivatService.getRate(savedCurrency);
-//        List<CurrencyItemMono> currencyRateListMono = currencyMonoService.getRate(savedCurrency);
-
-        String prettyText = prettyPrintCurrencyService.convert(currencyRateListPrivat, rounding);
-        onBackToMenuPressed(prettyText);
+        List<Bank> savedBanks = userUtil.getBankTypeByUserId(chatId);
+        StringBuilder text = new StringBuilder();
+        for (Bank bank : savedBanks) {
+            StringBuilder forOneBank = new StringBuilder("Exchange rate in " + bank.getFullName() + ":");
+            Map<String, Double> currencyRates = bank.getCurrencyService().getRate(savedCurrency);
+            forOneBank.append(prettyPrintCurrencyService.convert(currencyRates, savedCurrency, rounding, bank));
+            text.append(forOneBank)
+                    .append(System.lineSeparator().repeat(2));
+        }
+        onBackToMenuPressed(text.toString());
     }
 
-    private void onSettingsPressed() {
+    public void onSettingsPressed() {
         System.out.println("Settings pressed!");
 
         InlineKeyboardButton decimalPlacesButton = InlineKeyboardButton.builder().text("Number of decimal places").callbackData("number_of_decimal_places").build();
         InlineKeyboardButton currencyButton = InlineKeyboardButton.builder().text("Currency").callbackData("currency").build();
         InlineKeyboardButton notificationTimeButton = InlineKeyboardButton.builder().text("Notification time").callbackData("notification_time").build();
         InlineKeyboardButton bankButton = InlineKeyboardButton.builder().text("Bank").callbackData("bank").build();
-        InlineKeyboardButton getInfoButton = InlineKeyboardButton.builder().text("Go back").callbackData("main_menu").build();
+        InlineKeyboardButton getInfoButton = InlineKeyboardButton.builder().text("Back to main menu").callbackData("main_menu").build();
         List<InlineKeyboardButton> keyboardRow1 = new ArrayList<>(List.of(decimalPlacesButton));
         List<InlineKeyboardButton> keyboardRow2 = new ArrayList<>(List.of(currencyButton));
         List<InlineKeyboardButton> keyboardRow3 = new ArrayList<>(List.of(notificationTimeButton));
@@ -115,82 +122,86 @@ public class CurrencyTelegramBot extends TelegramLongPollingCommandBot {
         List<InlineKeyboardButton> keyboardRow5 = new ArrayList<>(List.of(getInfoButton));
         List<List<InlineKeyboardButton>> rowList = new ArrayList<>(List.of(keyboardRow1, keyboardRow2, keyboardRow3, keyboardRow4, keyboardRow5));
 
-        sendMessageWithKeyboard("Settings:", chatId.toString(), makeKeyboard(rowList));
+        sendMessageWithKeyboard("Settings:", chatId.toString(), createKeyboard(rowList));
     }
 
     private void onBackToMenuPressed(String text) {
         InlineKeyboardButton getInfoButton = InlineKeyboardButton.builder().text("Get info").callbackData("get_info").build();
         InlineKeyboardButton settingsButton = InlineKeyboardButton.builder().text("Settings").callbackData("settings").build();
         List<List<InlineKeyboardButton>> rowList = new ArrayList<>(List.of(List.of(getInfoButton), List.of(settingsButton)));
-        sendMessageWithKeyboard(text, chatId.toString(), makeKeyboard(rowList));
+        sendMessageWithKeyboard(text, chatId.toString(), createKeyboard(rowList));
     }
 
     private void onDecimalPlacesPressed() {
-        System.out.println("Decimal_places pressed!");
+        System.out.println("Decimal_places setting pressed!");
 
-        String text = "Select the number of decimal places:";
+        String text = "Select the number of decimal places for the exchange rate to be displayed (the number will be rounded):";
         Integer savedRounding = userUtil.getRoundingByUserId(chatId);
         List<List<InlineKeyboardButton>> rowList = new ArrayList<>();
         for (int i = 2; i < 5; i++) {
             rowList.add(List.of(createButton(getRoundingButton(savedRounding, i), i + ":_decimal_places")));
         }
         createBackToSettingsButton(rowList);
+        createBackToMainMenuButton(rowList);
 
-        sendMessageWithKeyboard(text, chatId.toString(), makeKeyboard(rowList));
+        sendMessageWithKeyboard(text, chatId.toString(), createKeyboard(rowList));
     }
 
     private void onDecimalTypePressed(String data, Integer messageId) throws TelegramApiException {
         String[] param = data.split(":");
         Integer newNumber = Integer.valueOf(param[0]);
-        System.out.println(newNumber + " pressed!");
+        System.out.println(newNumber + " decimal places option pressed!");
         Integer savedRounding = userUtil.getRoundingByUserId(chatId);
-        if(!newNumber.equals(savedRounding)) {
+        if (!newNumber.equals(savedRounding)) {
             userUtil.setRoundingByUserId(chatId, newNumber);
             savedRounding = userUtil.getRoundingByUserId(chatId);
 
             List<List<InlineKeyboardButton>> rowList = new ArrayList<>();
             for (int i = 2; i < 5; i++) {
-                rowList.add(List.of(createButton(getRoundingButton(savedRounding, i), i + ":_decimal_places")));}
+                rowList.add(List.of(createButton(getRoundingButton(savedRounding, i), i + ":_decimal_places")));
+            }
             createBackToSettingsButton(rowList);
 
-            editMessageWithKeyboard(messageId, chatId.toString(), makeKeyboard(rowList));
+            editMessageWithKeyboard(messageId, chatId.toString(), createKeyboard(rowList));
         }
+
     }
 
     private void onCurrencyPressed() {
-        System.out.println("Currency pressed!");
+        System.out.println("Currency setting pressed!");
 
-        String text = "Select the currency/currencies:";
+        String text = "Select the currency to be displayed:";
         List<List<InlineKeyboardButton>> rowList = new ArrayList<>();
-        List<Currency> savedCurrency = userUtil.getCurrencyTypeByUserId(chatId);
-        for (Currency currency : Arrays.stream(Currency.values()).limit(3).collect(Collectors.toList())) {
-            rowList.add(List.of(createButton(getCurrencyButton(savedCurrency, currency), "Currency:" + currency)));
+        List<Currency> savedCurrencies = userUtil.getCurrencyTypeByUserId(chatId);
+        for (Currency currency : Arrays.stream(Currency.values()).filter(it -> it != Currency.UAH).collect(Collectors.toList())) {
+            rowList.add(List.of(createButton(getCurrencyButton(savedCurrencies, currency), "Currency:" + currency)));
         }
         createBackToSettingsButton(rowList);
+        createBackToMainMenuButton(rowList);
 
-        sendMessageWithKeyboard(text, chatId.toString(), makeKeyboard(rowList));
+        sendMessageWithKeyboard(text, chatId.toString(), createKeyboard(rowList));
     }
 
     private void onCurrencyTypePressed(String data, Integer messageId) throws TelegramApiException {
         String[] param = data.split(":");
         Currency newCurrency = Currency.valueOf(param[1]);
-        System.out.println(newCurrency + " pressed!");
+        System.out.println(newCurrency + " currency option pressed!");
         userUtil.setCurrencyTypeByUserId(chatId, newCurrency);
         List<Currency> savedCurrency = userUtil.getCurrencyTypeByUserId(chatId);
 
         List<List<InlineKeyboardButton>> rowList = new ArrayList<>();
-        for (Currency currency : Arrays.stream(Currency.values()).limit(3).collect(Collectors.toList())) {
+        for (Currency currency : Arrays.stream(Currency.values()).filter(it -> it != Currency.UAH).collect(Collectors.toList())) {
             rowList.add(List.of(createButton(getCurrencyButton(savedCurrency, currency), "Currency:" + currency)));
         }
         createBackToSettingsButton(rowList);
 
-        editMessageWithKeyboard(messageId, chatId.toString(), makeKeyboard(rowList));
+        editMessageWithKeyboard(messageId, chatId.toString(), createKeyboard(rowList));
     }
 
     private void onNotificationTimePressed() {
-        System.out.println("Notification_time pressed!");
+        System.out.println("Notification_time setting pressed!");
 
-        String text = "Select notification time:";
+        String text = "Select daily notification time or turn it off:";
         String savedAlarmTime = userUtil.getAlarmTimeByUserId(chatId);
         InlineKeyboardButton turnOffNotificationsButton = InlineKeyboardButton.builder().text(getAlarmTimeButton(savedAlarmTime, "Turn off")).callbackData("Turn off:_alarm_time").build();
         List<InlineKeyboardButton> buttons = new ArrayList<>();
@@ -203,16 +214,17 @@ public class CurrencyTelegramBot extends TelegramLongPollingCommandBot {
         List<InlineKeyboardButton> keyboardRow4 = new ArrayList<>(List.of(buttons.get(9), turnOffNotificationsButton));
         List<List<InlineKeyboardButton>> rowList = new ArrayList<>(List.of(keyboardRow1, keyboardRow2, keyboardRow3, keyboardRow4));
         createBackToSettingsButton(rowList);
+        createBackToMainMenuButton(rowList);
 
-        sendMessageWithKeyboard(text, chatId.toString(), makeKeyboard(rowList));
+        sendMessageWithKeyboard(text, chatId.toString(), createKeyboard(rowList));
     }
 
     private void onNotificationTimeTypePressed(String data, Integer messageId) throws TelegramApiException {
         String[] param = data.split(":");
         String newAlarmTime = param[0];
         String savedAlarmTime = userUtil.getAlarmTimeByUserId(chatId);
-        System.out.println(newAlarmTime + " pressed!");
-        if(!Objects.equals(newAlarmTime, savedAlarmTime)) {
+        System.out.println(newAlarmTime + " notification option pressed!");
+        if (!Objects.equals(newAlarmTime, savedAlarmTime)) {
             userUtil.setAlarmTimeByUserId(chatId, newAlarmTime);
             savedAlarmTime = userUtil.getAlarmTimeByUserId(chatId);
 
@@ -228,28 +240,29 @@ public class CurrencyTelegramBot extends TelegramLongPollingCommandBot {
             List<List<InlineKeyboardButton>> rowList = new ArrayList<>(List.of(keyboardRow1, keyboardRow2, keyboardRow3, keyboardRow4));
             createBackToSettingsButton(rowList);
 
-            editMessageWithKeyboard(messageId, chatId.toString(), makeKeyboard(rowList));
+            editMessageWithKeyboard(messageId, chatId.toString(), createKeyboard(rowList));
         }
     }
 
     private void onBankPressed() {
-        System.out.println("Bank pressed!");
+        System.out.println("Bank setting pressed!");
 
-        String text = "Select the bank/banks:";
+        String text = "Select the bank to be displayed:";
         List<List<InlineKeyboardButton>> rowList = new ArrayList<>();
         List<Bank> savedBanks = userUtil.getBankTypeByUserId(chatId);
         for (Bank bank : Bank.values()) {
             rowList.add(List.of(createButton(getBankButton(savedBanks, bank), "Bank:" + bank)));
         }
         createBackToSettingsButton(rowList);
+        createBackToMainMenuButton(rowList);
 
-        sendMessageWithKeyboard(text, chatId.toString(), makeKeyboard(rowList));
+        sendMessageWithKeyboard(text, chatId.toString(), createKeyboard(rowList));
     }
 
     private void onBankTypePressed(String data, Integer messageId) throws TelegramApiException {
         String[] param = data.split(":");
         Bank newBank = Bank.valueOf(param[1]);
-        System.out.println(newBank + " pressed!");
+        System.out.println(newBank.getFullName() + " bank option pressed!");
         userUtil.setBankTypeByUserId(chatId, newBank);
         List<Bank> savedBanks = userUtil.getBankTypeByUserId(chatId);
 
@@ -259,7 +272,7 @@ public class CurrencyTelegramBot extends TelegramLongPollingCommandBot {
         }
         createBackToSettingsButton(rowList);
 
-        editMessageWithKeyboard(messageId, chatId.toString(), makeKeyboard(rowList));
+        editMessageWithKeyboard(messageId, chatId.toString(), createKeyboard(rowList));
     }
 
     private String getCurrencyButton(List<Currency> saved, Currency current) {
@@ -267,7 +280,7 @@ public class CurrencyTelegramBot extends TelegramLongPollingCommandBot {
     }
 
     private String getBankButton(List<Bank> saved, Bank bank) {
-        return saved.stream().filter(it -> it.equals(bank)).findFirst().isEmpty() ? bank.name() : bank + EmojiParser.parseToUnicode(":white_check_mark:");
+        return saved.stream().filter(it -> it.equals(bank)).findFirst().isEmpty() ? bank.getFullName() : bank.getFullName() + EmojiParser.parseToUnicode(":white_check_mark:");
     }
 
     private String getRoundingButton(Integer saved, Integer number) {
@@ -280,9 +293,9 @@ public class CurrencyTelegramBot extends TelegramLongPollingCommandBot {
 
     @Override
     public void processNonCommandUpdate(Update update) {
-        chatId = update.getCallbackQuery().getMessage().getChatId();
-        Integer messageId = update.getCallbackQuery().getMessage().getMessageId();
         if (update.hasCallbackQuery()) {
+            chatId = update.getCallbackQuery().getMessage().getChatId();
+            Integer messageId = update.getCallbackQuery().getMessage().getMessageId();
             if (update.getCallbackQuery().getData().equals("get_info")) {
                 onGetInfoPressed();
             } else if (update.getCallbackQuery().getData().equals("settings")) {
@@ -327,7 +340,10 @@ public class CurrencyTelegramBot extends TelegramLongPollingCommandBot {
                 System.out.println("Non-command here!");
             }
         } else
-            System.out.println("Non-command here!");
+            System.out.println("Unsupported command or callback received"
+                    + " from User \"" + update.getMessage().getFrom().getUserName() + "\""
+                    + " in chat with id \"" + update.getMessage().getChatId() + "\""
+                    + ", chat message is: \"" + update.getMessage().getText() + "\".");
     }
 
     @Override
